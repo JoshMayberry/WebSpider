@@ -65,6 +65,19 @@ class Spider():
 		self.mySpider.run()
 
 	@MyUtilities.common.makeProperty()
+	class delay():
+		"""The delay of the spider."""
+
+		def getter(self):
+			return self.mySpider.download_delay
+
+		def setter(self, value):
+			self.mySpider.download_delay = value
+
+		def remover(self):
+			self.mySpider.download_delay = None
+
+	@MyUtilities.common.makeProperty()
 	class name():
 		"""The name of the spider."""
 
@@ -123,6 +136,8 @@ class Spider():
 		login_userValue = None
 		login_passwordLabel = None
 		login_passwordValue = None
+		login_submitLabel = None
+		login_submitValue = None
 
 		def set_loginUser(self, label, value):
 			self.login_userLabel = label
@@ -131,6 +146,10 @@ class Spider():
 		def set_loginPassword(self, label, value):
 			self.login_passwordLabel = label
 			self.login_passwordValue = value
+
+		def set_loginSubmit(self, label, value):
+			self.login_submitLabel = label
+			self.login_submitValue = value
 
 		def login_check(self, response):
 			return self.parent.url_login == response.url
@@ -141,12 +160,20 @@ class Spider():
 			Can be overridden.
 			"""
 
+			if (self.login_submitLabel is None):
+				clickdata = None
+			elif (isinstance(self.login_submitLabel, int)):
+				clickdata = {"nr": self.login_submitLabel}
+			else:
+				clickdata = {self.login_submitLabel: self.login_submitValue}
+
 			return scrapy.FormRequest.from_response(
 					response,
 					formdata = {
 						self.login_userLabel: self.login_userValue, 
 						self.login_passwordLabel: self.login_passwordValue,
 						},
+					clickdata = clickdata,
 					callback = self.after_loginParse,
 				)
 
@@ -170,14 +197,26 @@ class Spider():
 		parent = None
 		name = None
 		start_urls = []
+		download_delay = 0
+
+		custom_settings = {
+			"ROBOTSTXT_OBEY": True,
+			"AUTOTHROTTLE_ENABLED": True,
+		}
 
 		@classmethod
 		def run(cls):
 			runSpider(cls)
 
 		def parse(self, response):
-			self.parent.parser.spider = self
-			return self.parent.parser.startParse(response)
+
+			print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+			print(self.settings.attributes.items())
+			print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
+
+			# self.parent.parser.spider = self
+			# return self.parent.parser.startParse(response)
 
 if (__name__ == "__main__"):
 	class ExampleSpider_1(scrapy.Spider):
@@ -243,11 +282,13 @@ if (__name__ == "__main__"):
 
 		def parse(self, response):
 			# #See: http://doc.scrapy.org/en/1.0/intro/tutorial.html#introduction-to-selectors
-			# form = response.xpath("//form")[0]
-			# print(form.xpath("//input"))
+			form = response.xpath("//form")[0]
+			print(form.xpath("//input"))
+
 			return scrapy.FormRequest.from_response(
 					response,
 					formdata = {"usr": "admin", "pwd": "12345"},
+					clickdata = {"type": "submit"},
 					callback = self.after_login,
 				)
 
@@ -261,13 +302,14 @@ if (__name__ == "__main__"):
 			self.logger.error("\nLogin successful\n")
 
 	def exampleSpider_3():
-		spider = build(name = "Omnitracs_Spider")
+		spider = build(name = "Automatic_Spider")
 
 		class Parser(spider.BaseParser):
 			def __init__(self, *args, **kwargs):
 				super().__init__(*args, **kwargs)
 				self.set_loginUser("usr", "admin")
 				self.set_loginPassword("pwd", "12345")
+				self.set_loginSubmit("type", "submit")
 
 			def after_loginParse(self, response):
 				if (not response.css(".success")):
@@ -281,6 +323,6 @@ if (__name__ == "__main__"):
 
 		spider.run()
 
-	# runSpider(ExampleSpider_1)
+	runSpider(ExampleSpider_1)
 	# runSpider(ExampleSpider_2)
-	exampleSpider_3()
+	# exampleSpider_3()
