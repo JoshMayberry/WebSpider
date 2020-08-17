@@ -34,8 +34,8 @@ def runSpider(spiderClass):
 	process.start() # the script will block here until the crawling is finished
 
 class Spider():
-	def __init__(self, name = None):
-		self.mySpider = self.BaseSpider
+	def __init__(self, name = None, mySpider = None):
+		self.mySpider = mySpider or self.BaseSpider
 		self.mySpider.parent = self
 
 		self.name = name
@@ -44,23 +44,18 @@ class Spider():
 	_url_login = None
 
 	def run(self):
+		if (self.parser):
+			if (self.parser.parent is None):
+				self.parser.parent = self
 
-		if (not self.parser):
-			print("ERROR: No parser created")
-			print("Example: spider.parser = Parser(spider)")
-			return False
-
-		if (self.parser.parent is None):
-			self.parser.parent = self
-
-		if (not self.url_start):
-			print("ERROR: No starting url given")
-			return False
-
-		if (self.url_login):
-			if (None in (self.parser.login_userLabel, self.parser.login_userValue, self.parser.login_passwordLabel, self.parser.login_passwordValue)):
-				print("ERROR: Missing login information")
+			if (not self.url_start):
+				print("ERROR: No starting url given")
 				return False
+
+			if (self.url_login):
+				if (None in (self.parser.login_userLabel, self.parser.login_userValue, self.parser.login_passwordLabel, self.parser.login_passwordValue)):
+					print("ERROR: Missing login information")
+					return False
 
 		self.mySpider.run()
 
